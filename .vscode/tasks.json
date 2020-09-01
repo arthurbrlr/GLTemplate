@@ -1,0 +1,114 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "buildCode",
+            "command": "make",
+            "osx" : {
+                "command": "make OS=MACOS"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "type": "shell",
+            "label": "buildDebug",
+            "command": "make mode=debug",
+            "osx" : {
+                "command": "make mode=debug OS=MACOS"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}    
+
+
+
+//{
+//    "version": "2.0.0",
+//    "tasks": [
+//        {
+//            "label": "Compiler",
+//            "type": "shell",
+//            "command": "g++",
+//            "args": [
+//                "-c",
+//                "-g",
+//                "-Wall",
+//                "-std=c++17",
+//                "-stdlib=libc++",
+//                "${workspaceFolder}/src/*.cpp",
+//                "-I${workspaceFolder}/trdp/GLEW",
+//                "-I${workspaceFolder}/trdp/GLFW"
+//            ],
+//            "problemMatcher": ["$gcc"]
+//        },
+//        {
+//            "label": "Linker",
+//            "dependsOn": [
+//                "Compiler"
+//            ],
+//            "type": "shell",
+//            "command": "g++",
+//            "args": [
+//                "${workspaceFolder}/*.o",
+//                "-o",
+//                "${workspaceFolder}/bin/template.out",
+//                "-g",
+//                "-Wall",
+//                "-std=c++17",
+//                "-stdlib=libc++",
+//                "-L${workspaceFolder}/trdp/GLFW/lib",
+//                "-L${workspaceFolder}/trdp/GLEW/lib",
+//                "-lglfw",
+//                "-lglew"
+//            ],
+//            "problemMatcher": ["$gcc"],
+//            "osx" : {
+//                "args": [ 
+//                    "${workspaceFolder}/*.o",
+//                    "-o",
+//                    "${workspaceFolder}/bin/template.out",
+//                    "-g",
+//                    "-Wall",
+//                    "-std=c++17",
+//                    "-stdlib=libc++",
+//                    "-L${workspaceFolder}/trdp/GLFW/lib",
+//                    "-L${workspaceFolder}/trdp/GLEW/lib",
+//                    "-lglfw",
+//                    "-lglew",
+//                    "-framework Cocoa -framework OpenGL -framework IOKit -framework CoreVideo"
+//                ]
+//            }
+//        },
+//        {
+//            "label": "Build",
+//            "dependsOn": [
+//                "Compiler",
+//                "Linker"
+//            ],
+//            //"type": "shell",
+//            //"command": "g++",
+//            //"args": [
+//            //    "-g",
+//            //    "app.cpp",
+//            //],
+//            "group": {
+//                "kind": "build",
+//                "isDefault": true
+//            }
+//        }
+//    ]
+//}

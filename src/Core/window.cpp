@@ -9,9 +9,15 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
+void processInput(GLFWwindow *window)
+{
+    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+}
 
-Window application = Window();
-bool CreateWindow()
+
+window application = window();
+bool window_create()
 {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -43,4 +49,28 @@ bool CreateWindow()
     fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
     return true;
+}
+
+
+bool window_sould_close()
+{
+    return glfwWindowShouldClose(application.nativeWindow);
+}
+
+
+void window_update()
+{
+    processInput(application.nativeWindow);
+
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glfwSwapBuffers(application.nativeWindow);
+    glfwPollEvents();
+}
+
+
+void window_free()
+{
+    glfwTerminate();
 }

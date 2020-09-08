@@ -1,33 +1,16 @@
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <stdio.h>
-
 #include "Core/window.h"
-
-void processInput(GLFWwindow *window)
-{
-    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-}
 
 int main()
 {
-    bool success = CreateWindow();
+    bool success = window_create();
     if (!success) return -1;
 
-    while (!glfwWindowShouldClose(application.nativeWindow))
+    while (!window_sould_close())
     {
-        processInput(application.nativeWindow);
-
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        glfwSwapBuffers(application.nativeWindow);
-        glfwPollEvents();
+        window_update();   
     }
 
-    glfwTerminate();
-
+    window_free();
     return 0;
 }
 

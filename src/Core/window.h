@@ -1,16 +1,13 @@
 struct GLFWwindow;
 
-struct Window {
-
-    GLFWwindow* nativeWindow = nullptr;
+struct window {
+    GLFWwindow* nativeWindow = 0;
     unsigned int width = 800;
     unsigned int height = 600;
-
-    Window(unsigned int w = 800, unsigned int h = 600)
-        : width(w), height(h)
-    {
-    }
 };
-extern Window application;
+extern window application;
 
-bool CreateWindow();
+bool window_create();
+bool window_sould_close();
+void window_update();
+void window_free();

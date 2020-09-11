@@ -2,3 +2,8 @@ bin/
 bin-int/
 .DS_Store
 makefile
+/.vs/GLTemplate/v16
+/GLTemplate.vcxproj.user
+/GLTemplate.vcxproj.filters
+/GLTemplate.vcxproj
+/GLTemplate.sln

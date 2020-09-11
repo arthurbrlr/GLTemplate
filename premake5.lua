@@ -6,9 +6,9 @@ solution "GLTemplate"
     project "GLTemplate"
         kind "ConsoleApp"
         language "C++"
-        location "bin"
+        cppdialect "C++17"
+
         objdir "bin-int/%{cfg.platform}/%{cfg.buildcfg}"
-        buildoptions { "-std=c++17" }
         architecture "x64"
 
         files {
@@ -16,16 +16,31 @@ solution "GLTemplate"
             "src/**.cpp"
         }
 
+        includedirs {
+            "trdp/GLEW/include",
+            "trdp/GLFW/include"
+		}
+
         -- libraries
         libdirs {
             "trdp/GLEW/lib",
             "trdp/GLFW/lib" 
         }
 
+
         configuration "windows"
             links {
-                "GLEW",
-                "glfw"
+                "glew32s",
+                "glfw3",
+                "opengl32.lib"
+            }
+
+            defines {
+                "GLEW_STATIC"
+			}
+
+            ignoredefaultlibraries { 
+                "MSVCRT" 
             }
 
         configuration "linux"

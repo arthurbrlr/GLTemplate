@@ -2,12 +2,11 @@
 
 #include "core/window.cpp"
 #include "app.cpp"
-#include <GLFW/glfw3.h>
 
 int main()
 {
-    application.height = 600;
     application.width = 800;
+    application.height = 600;
     application.title = "GLTemplate_MACOS";
 
     if ( glfwInit() == GLFW_FALSE ) {
@@ -42,7 +41,6 @@ int main()
     {
         PlatformProcessInputs(application.nativeWindow);
 
-            // clear screen
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 

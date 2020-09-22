@@ -2,5 +2,8 @@
     "files.exclude": {
         "bin-int/": true,
         "bin/": true
+    },
+    "files.associations": {
+        "cerrno": "cpp"
     }
 }

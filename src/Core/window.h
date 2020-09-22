@@ -1,13 +1,17 @@
+#pragma once
+#include "core.h"
+
 struct GLFWwindow;
 
 struct window {
-    GLFWwindow* nativeWindow = 0;
-    unsigned int width = 800;
-    unsigned int height = 600;
+    GLFWwindow* nativeWindow;
+    unsigned int width;
+    unsigned int height;
+    char* title;
 };
-extern window application;
+global_var window application;
 
-bool window_create();
-bool window_sould_close();
-void window_update();
-void window_free();
+internal bool window_create();
+internal bool window_sould_close();
+internal void window_update();
+internal void window_free();

@@ -1,16 +1,10 @@
-#include "Core/window.cpp"
+#include "core.h"
+#include "core/log.h"
+#include "core/window.h"
+#include <GL/glew.h>
 
-int main()
+internal void ApplicationUpdate()
 {
-    bool success = window_create();
-    if (!success) return -1;
-
-    while (!window_sould_close())
-    {
-        window_update();   
-    }
-
-    window_free();
-    return 0;
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
 }
-

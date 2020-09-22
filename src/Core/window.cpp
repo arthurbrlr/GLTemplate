@@ -20,19 +20,28 @@ void processInput(GLFWwindow *window)
 window application = window();
 bool window_create()
 {
-    glfwInit();
+    if ( glfwInit() == GLFW_FALSE ) {
+        fprintf(stderr, "Error: Failed at glfw init\n");
+        return false;
+    }
+
+#ifdef _WIN64
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#endif
+
+
+#ifdef __APPLE__
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
     application.nativeWindow = glfwCreateWindow(application.width, application.height, "OpenGL", NULL, NULL);
-    if (application.nativeWindow == NULL)
-    {
-        fprintf(stdout, "Failed to create GLFW window\n");
+    if (application.nativeWindow == NULL) {
+        fprintf(stderr, "Error: Failed to create GLFW window\n");
         glfwTerminate();
         return false;
     }
@@ -41,8 +50,7 @@ bool window_create()
     glfwSetFramebufferSizeCallback(application.nativeWindow, framebuffer_size_callback);
 
     GLenum err = glewInit();
-    if (GLEW_OK != err)
-    {
+    if ( err != GLEW_OK ) {
         fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
         return false;
     }

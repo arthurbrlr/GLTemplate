@@ -2,4 +2,3 @@ bin/
 bin-int/
 .DS_Store
 makefile
-a.out

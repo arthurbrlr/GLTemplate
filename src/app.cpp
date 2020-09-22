@@ -1,4 +1,4 @@
-#include "Core/window.h"
+#include "Core/window.cpp"
 
 int main()
 {

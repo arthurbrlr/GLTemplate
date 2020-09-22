@@ -2,17 +2,4 @@
 
 cd ..
 
-if [ "$1" == "release" ]; then
-    ./build/macos/premake5 gmake2
-    rm bin/bin/Release/GLTemplate
-    make config=release
-    ./bin/bin/Release/GLTemplate
-elif [ "$1" == "clean" ]; then
-    ./build/macos/premake5 clean
-    make clean
-else
-    ./build/macos/premake5 gmake2
-    rm bin/bin/Debug/GLTemplate
-    make config=debug
-    ./bin/bin/Debug/GLTemplate
-fi
+g++ src/app.cpp -framework Cocoa -framework OpenGL -Ltrdp/GLEW/lib -lGLEW -Ltrdp/GLFW/lib -lglfw -o bin/app

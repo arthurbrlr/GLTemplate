@@ -1,0 +1,6 @@
+controlleraxes(LEFT_X, "Left X")
+controlleraxes(LEFT_Y, "Left Y")
+controlleraxes(RIGHT_X, "Right X")
+controlleraxes(RIGHT_Y, "Right Y")
+controlleraxes(LEFT_TRIGGER, "Left Trigger")
+controlleraxes(RIGHT_TRIGGER, "Right Trigger")

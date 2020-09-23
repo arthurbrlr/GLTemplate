@@ -12,7 +12,7 @@
             //"preLaunchTask": "buildDebug",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/bin",
+            "cwd": "${workspaceFolder}/data",
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb"

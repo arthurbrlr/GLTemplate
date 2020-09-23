@@ -1,0 +1,8 @@
+mousebutton(LEFT, "Mouse Left")
+mousebutton(RIGHT, "Mouse Right")
+mousebutton(MIDDLE, "Mouse Middle")
+mousebutton(4, "Mouse 4")
+mousebutton(5, "Mouse 5")
+mousebutton(6, "Mouse 6")
+mousebutton(7, "Mouse 7")
+mousebutton(8, "Mouse 8")

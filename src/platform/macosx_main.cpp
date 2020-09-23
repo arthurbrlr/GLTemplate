@@ -1,13 +1,17 @@
 #ifdef __APPLE__
 
-#include "core/window.cpp"
+#include "core/platform.cpp"
 #include "engine.h"
+
+#include "core/window.cpp"
 
 #include <dlfcn.h> // dylib 
 #include <sys/stat.h> // filestat
 #include <fcntl.h> // open
 #include <unistd.h> // close
 #include <stdlib.h> // malloc, free
+#include <sys/mman.h> // mmap
+#include <libproc.h> // pid
 
 struct osx_engine_code {
     bool32 isValid;
@@ -15,6 +19,12 @@ struct osx_engine_code {
     void* dylibHandle;
 
     EngineUpdateFunc* Update;
+    EngineSetPlatformFunc* SetPlatform;
+};
+
+struct platform_state {
+    char appFilepath[PROC_PIDPATHINFO_MAXSIZE];
+    char* lastSlashPlusOne;
 };
 
 struct debug_platform_file {
@@ -33,6 +43,23 @@ internal size_t OSXGetLastUpdateTime(const char* filepath)
 	}
 
 	return lastUpdateTime;
+}
+
+internal void OSXGetExecutableFilename(platform_state* platformPtr)
+{
+    pid_t PID = getpid();
+	int pidPathRes = proc_pidpath(PID, platformPtr->appFilepath, sizeof(platformPtr->appFilepath));
+
+	if ( pidPathRes <= 0 ) {
+		LogErr("OSXGetExecutableFilename: Error while getting process path for PID %d\n", PID);
+	}
+
+    platformPtr->lastSlashPlusOne = platformPtr->appFilepath;
+    for(char *scanIndex = platformPtr->lastSlashPlusOne; *scanIndex; ++scanIndex) {
+        if(*scanIndex == '/') {
+            platformPtr->lastSlashPlusOne = scanIndex + 1;
+        }
+    }
 }
 
 internal void DEBUGPlatformFreeFileMemory(void* memory)
@@ -106,37 +133,54 @@ internal bool32 DEBUGPlatformWriteEntireFile(debug_platform_file* file, const ch
 
 
 
-internal osx_engine_code OSXLoadEngineCode(const char* dylibPath, const char* dylibTempPath)
+internal osx_engine_code OSXLoadEngineCode(const char* dylibName, const char* dylibTempName)
 {
+    platform_state plt = {};
+    OSXGetExecutableFilename(&plt);
+
+    char dylibFullPath[PROC_PIDPATHINFO_MAXSIZE];
+    ConcatString(plt.lastSlashPlusOne - plt.appFilepath, plt.appFilepath,
+                 GetCStringLength(dylibName), dylibName,
+                 GetCStringLength(dylibFullPath), dylibFullPath);
+
+    char dylibTempFullPath[PROC_PIDPATHINFO_MAXSIZE];
+    ConcatString(plt.lastSlashPlusOne - plt.appFilepath, plt.appFilepath,
+                 GetCStringLength(dylibTempName), dylibTempName,
+                 GetCStringLength(dylibTempFullPath), dylibTempFullPath);
+
     osx_engine_code engineCode = {};
-    engineCode.dylibLastUpadteTime = OSXGetLastUpdateTime(dylibPath);
+    engineCode.dylibLastUpadteTime = OSXGetLastUpdateTime(dylibFullPath);
     engineCode.isValid = false;
 
-    debug_platform_file dylib = DEBUGPlatformReadEntireFile(dylibPath);
+    debug_platform_file dylib = DEBUGPlatformReadEntireFile(dylibFullPath);
     bool32 copyDone = false;
     if ( dylib.content ) {
-        copyDone = DEBUGPlatformWriteEntireFile(&dylib, dylibTempPath);
+        copyDone = DEBUGPlatformWriteEntireFile(&dylib, dylibTempFullPath);
         DEBUGPlatformFreeFileMemory(dylib.content);
     }
 
     if ( copyDone ) {
-        engineCode.dylibHandle = dlopen(dylibTempPath, RTLD_LAZY | RTLD_GLOBAL);
+        engineCode.dylibHandle = dlopen(dylibTempFullPath, RTLD_LAZY | RTLD_GLOBAL);
         if ( engineCode.dylibHandle )
         {
             engineCode.Update = (EngineUpdateFunc*)dlsym(engineCode.dylibHandle, "EngineUpdateAndRender");
+            engineCode.SetPlatform = (EngineSetPlatformFunc*)dlsym(engineCode.dylibHandle, "EngineSetPlatform");
+
             if ( engineCode.Update ) {
                 engineCode.isValid = true;
             }
         } else {
             LogErr("Couldn't open engine dylib\n");
         }
-        LogInfo("LastUpdateTime for %s : %d\n", dylibTempPath, engineCode.dylibLastUpadteTime);
     }
 
 	if ( !engineCode.isValid )
 	{
 		engineCode.Update = EngineUpdate__Undefined;
+        engineCode.SetPlatform = EngineSetPlatform__Undefined;
 	}
+
+    engineCode.SetPlatform(&globalOS);
 
 	return engineCode;
 }
@@ -176,8 +220,17 @@ int main()
     }
 
     glfwMakeContextCurrent(application.nativeWindow);
-    glfwSetFramebufferSizeCallback(application.nativeWindow, framebuffer_size_callback);
-    glfwSetJoystickCallback(joystick_callback);
+
+    glfwSetWindowCloseCallback(application.nativeWindow, PlatformWindowCloseCallback);
+    glfwSetFramebufferSizeCallback(application.nativeWindow, PlatformWindowResizeCallback);
+    glfwSetDropCallback(application.nativeWindow, PlatformDragDropCallback);
+
+    glfwSetKeyCallback(application.nativeWindow, PlatformKeyCallback);
+    glfwSetJoystickCallback(PlatformJoystickCallback);
+    glfwSetCursorEnterCallback(application.nativeWindow, PlatformCursorEnterCallback);
+    glfwSetMouseButtonCallback(application.nativeWindow, PlatformMouseButtonCallback);
+    glfwSetScrollCallback(application.nativeWindow, PlatformMouseScrolledCallback);
+    glfwSetCursorPosCallback(application.nativeWindow, PlatformMouseMovedCallback);
 
     GLenum err = glewInit();
     if ( err != GLEW_OK ) {
@@ -188,25 +241,46 @@ int main()
     LogInfo("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
     osx_engine_code engine = OSXLoadEngineCode("candle.dylib", "candle_temp.dylib");
+    if ( !engine.isValid ) {
+        LogErr("Engine dylib was not initialised correctly\n");
+    }
+    globalOS.maxEventsPerFrame = 1024;
 
-    while (!glfwWindowShouldClose(application.nativeWindow))
-    {
+    engine_memory engineMemory = {};
+    engineMemory.permanentContainerSize = (u64)MegaBytes(64);
+    engineMemory.transientContainerSize = (u64)GigaBytes(1);
+    u64 totalMemorySize = engineMemory.permanentContainerSize + engineMemory.transientContainerSize;
+    engineMemory.permanentContainer = mmap(0, totalMemorySize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    engineMemory.transientContainer = ( (u8*)(engineMemory.permanentContainer) + engineMemory.permanentContainerSize );
+
+    if  ( !engineMemory.permanentContainer || !engineMemory.transientContainer ) {
+        LogErr("Engine memory allocation failed\n");
+    }
+    PlatformRegisterEvent(platform_event{EventTypes::application_start});
+
+    while ( globalOS.run ) {
+
         size_t engineCodeUpdate = OSXGetLastUpdateTime("candle.dylib");
         if ( engineCodeUpdate > engine.dylibLastUpadteTime ) {
             OSXUnloadEngineCode(&engine);
+            sleep(1);
             engine = OSXLoadEngineCode("candle.dylib", "candle_temp.dylib");
+            LogInfo("Hot reloading !\n");
         }
-
-
-        PlatformProcessInputs(application.nativeWindow);
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        engine.Update();
+        engine.Update(&engineMemory);
 
         glfwSwapBuffers(application.nativeWindow);
-        glfwPollEvents();  
+
+        // NOTE(arthur): use glfwPollEvents if the app needs real time update
+        //               use glfwWaitEvents if the application doesn't need to be updated at
+        //               a constant time interval (less CPU intensive)
+        PlatformResetEventQueue();
+        glfwPollEvents();
+        PlatformProcessInputs(application.nativeWindow);
     }
 
     OSXUnloadEngineCode(&engine);

@@ -4,6 +4,8 @@
         "bin/": true
     },
     "files.associations": {
-        "cerrno": "cpp"
+        "cerrno": "cpp",
+        "__node_handle": "cpp",
+        "*.def": "cpp"
     }
 }

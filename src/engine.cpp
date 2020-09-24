@@ -27,6 +27,7 @@ global_var engine_menu engineMenu;
 struct engine_state {
     i32 counter;
     i8 currentMenuPosition;
+    v2f offset;
 };
 
 extern "C" ENGINE_UPDATE(EngineUpdateAndRender)
@@ -42,7 +43,6 @@ extern "C" ENGINE_UPDATE(EngineUpdateAndRender)
             engineMemory->writefile("test.cpp", &file);
             engineMemory->freefile(file.content);
         }
-
         LogInfo("Engine memory initialized\n");
     }
 
@@ -50,6 +50,25 @@ extern "C" ENGINE_UPDATE(EngineUpdateAndRender)
         state->counter = 480;
         //DisplayMessages();
     }
+
+    if ( GetKeyState(KEY_W) ) {
+        state->offset.y += 0.05f;
+    }
+
+    if ( GetKeyState(KEY_S) ) {
+        state->offset.y -= 0.05f;
+    }
+
+    if ( GetKeyState(KEY_A) ) {
+        state->offset.x -= 0.05f;
+    }
+
+    if ( GetKeyState(KEY_D) ) {
+        state->offset.x += 0.05f;
+    }
+
+    state->offset.x += 0.05f * GetControllerAxes(0, controller_axes_LEFT_X);
+    state->offset.y -= 0.05f * GetControllerAxes(0, controller_axes_LEFT_Y);
 
     if ( OnControllerButtonDown(0, controller_button_DPAD_DOWN) ) {
         state->currentMenuPosition++;

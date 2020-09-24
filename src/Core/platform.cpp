@@ -26,7 +26,7 @@ internal void PlatformRegisterEvent(platform_event event)
             {
                 engine_key eKey = KeyFromGLFWKeycode(event.glfwKeyCode);
                 globalOS.currentKeyboard[eKey] = true;
-                LogMsg("Key pressed: %s (%d)\n", GetKeyName(eKey).string, eKey);
+                //LogMsg("Key pressed: %s (%d)\n", GetKeyName(eKey).string, eKey);
             } break;
 
             case EventTypes::key_released:

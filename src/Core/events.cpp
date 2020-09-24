@@ -58,7 +58,12 @@ internal str8 GetControllerAxesName(engine_controller_axes axes)
 
 internal f32 GetControllerAxes(int controllerID, engine_controller_axes axes)
 {
-    return enginePlatform->currentControllers[controllerID].axes[axes];
+    // TODO(arthur): threshold should be a user defined value
+    f32 axisvalue = enginePlatform->currentControllers[controllerID].axes[axes];
+    if ( axisvalue < 0.2f && axisvalue > -0.2f ) {
+        axisvalue = 0.f;
+    }
+    return axisvalue;
 }
 
     // NOTE(arthur): see https://www.glfw.org/docs/latest/group__keys.html for more details on key odes

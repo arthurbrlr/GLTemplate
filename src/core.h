@@ -4,8 +4,6 @@
 #define internal static
 #define local_storage static
 
-#define assert(expression) if ( !(expression) ) { *(int*)0 = 0; }
-
 #define KiloBytes(x) ( (x) * 1024)
 #define MegaBytes(x) ( KiloBytes(x) * 1024 )
 #define GigaBytes(x) ( MegaBytes(x) * 1024 )
@@ -16,8 +14,10 @@
 
 #ifndef _WIN64
     #include <stdint.h>
+    #define assert(expression) if ( !(expression) ) { __builtin_trap(); }
 #else
     #include <cstdint>
+    #define assert(expression) if ( !(expression) ) { *(int*)0 = 0; }
 #endif
 
 typedef int8_t i8;

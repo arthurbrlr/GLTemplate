@@ -28,11 +28,6 @@ struct platform_state {
     char* lastSlashPlusOne;
 };
 
-struct debug_platform_file {
-    u32 size;
-    void* content;
-};
-
 internal size_t OSXGetLastUpdateTime(const char* filepath)
 {
 	time_t lastUpdateTime = 0;
@@ -72,7 +67,7 @@ DEBUG_PLATFORM_IO_FREEFILEMEMORY(DEBUGPlatformFreeFileMemory)
 
 DEBUG_PLATFORM_IO_READENTIREFILE(DEBUGPlatformReadEntireFile)
 {
-	debug_platform_file result = {};
+	debug_file result = {};
 
 	int fd = open(filepath, O_RDONLY);
 	if (fd != -1) {
@@ -153,10 +148,10 @@ internal osx_engine_code OSXLoadEngineCode(const char* dylibName, const char* dy
     engineCode.dylibLastUpadteTime = OSXGetLastUpdateTime(dylibFullPath);
     engineCode.isValid = false;
 
-    debug_platform_file dylib = DEBUGPlatformReadEntireFile(dylibFullPath);
+    debug_file dylib = DEBUGPlatformReadEntireFile(dylibFullPath);
     bool32 copyDone = false;
     if ( dylib.content ) {
-        copyDone = DEBUGPlatformWriteEntireFile(&dylib, dylibTempFullPath);
+        copyDone = DEBUGPlatformWriteEntireFile(dylibTempFullPath, &dylib);
         DEBUGPlatformFreeFileMemory(dylib.content);
     }
 
@@ -250,6 +245,10 @@ int main()
     engineMemory.permanentContainer = mmap(0, totalMemorySize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
     engineMemory.transientContainer = ( (u8*)(engineMemory.permanentContainer) + engineMemory.permanentContainerSize );
 
+    engineMemory.freefile = DEBUGPlatformFreeFileMemory;
+    engineMemory.readfile = DEBUGPlatformReadEntireFile;
+    engineMemory.writefile = DEBUGPlatformWriteEntireFile;
+
     if  ( !engineMemory.permanentContainer || !engineMemory.transientContainer ) {
         LogErr("Engine memory allocation failed\n");
     }
@@ -262,6 +261,9 @@ int main()
                  GetCStringLength("engine.dll"), "engine.dll",
                  GetCStringLength(dylibFullPath), dylibFullPath);
 
+    f32 applicationStartupTime = glfwGetTime();
+    local_storage u32 totalFrameCount = 0;
+    
     while ( globalOS.run ) {
 
         size_t engineCodeUpdate = OSXGetLastUpdateTime(dylibFullPath);
@@ -285,7 +287,11 @@ int main()
         PlatformResetEventQueue();
         glfwPollEvents();
         PlatformProcessInputs(application.nativeWindow);
+        totalFrameCount++;
     }
+
+    f32 totalTimeElapsed = glfwGetTime() - applicationStartupTime;
+    LogMsg("Average FPS: %.3f\n", totalFrameCount / totalTimeElapsed);
 
     OSXUnloadEngineCode(&engine);
 

@@ -64,7 +64,7 @@ internal f32 GetControllerAxes(int controllerID, engine_controller_axes axes)
     // NOTE(arthur): see https://www.glfw.org/docs/latest/group__keys.html for more details on key odes
 internal engine_key KeyFromGLFWKeycode(int keycode)
 {
-    engine_key key;
+    engine_key key = KEY_UNKNOWN;
     if ( keycode == -1 ) {
         key = KEY_UNKNOWN;
     } else if ( keycode >= 44 && keycode <= 57 ) { // 0-9 keys and "," and "-"  and "." and "/" keys

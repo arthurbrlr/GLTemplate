@@ -12,7 +12,11 @@
 #define ARRAY_COPY(source, target) for (int i = 0; i < ARRAY_COUNT(source); i++) { target[i] = source[i]; }
 #define ARRAY_SET(array, value) for (int i = 0; i < ARRAY_COUNT(source); i++) { array[i] = (value); }
 
-#include <stdint.h>
+#ifndef _WIN64
+    #include <stdint.h>
+#else
+    #include <cstdint>
+#endif
 
 typedef int8_t i8;
 typedef int16_t i16;

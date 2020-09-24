@@ -12,10 +12,21 @@
             //"preLaunchTask": "buildDebug",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/data",
+            "cwd": "${workspaceFolder}/bin",
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb"
+        },
+        {
+            "name": "(Windows) Lancer",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/win32_main.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/bin",
+            "environment": [],
+            "externalConsole": true
         }
     ]
 }

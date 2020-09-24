@@ -50,7 +50,7 @@ internal void PlatformKeyCallback(GLFWwindow* window, int key, int scancode, int
 internal void PlatformJoystickCallback(int jid, int event)
 {
     platform_event pEvent = {};
-    pEvent.controller.ID = jid;
+    pEvent.controller.ID = (i8)jid;
     if (event == GLFW_CONNECTED) {
         pEvent.type = EventTypes::controller_connect;
     } else if (event == GLFW_DISCONNECTED) {

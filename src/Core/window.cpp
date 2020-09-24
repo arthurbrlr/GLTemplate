@@ -71,9 +71,9 @@ internal void PlatformCursorEnterCallback(GLFWwindow* window, int enter)
 internal void PlatformMouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 {
     platform_event pEvent;
+    pEvent.mouse.button = (engine_mouse_button)button;
     if ( action == GLFW_PRESS ) {
         pEvent.type = EventTypes::mouse_pressed;
-        pEvent.mouse.button = (engine_mouse_button)button;
     } else {
         pEvent.type = EventTypes::mouse_released;
     }

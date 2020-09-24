@@ -1,6 +1,7 @@
 #ifdef _WIN64
 
 #include "core/platform.cpp"
+#include "core/filesystem.h"
 #include "engine.h"
 
 #include "core/window.cpp"
@@ -21,6 +22,18 @@ struct platform_state {
     char* lastSlashPlusOne;
 };
 
+internal void Win32GetExecutableFilename(platform_state* platformPtr)
+{
+    DWORD sizeofFilename = GetModuleFileNameA(0, platformPtr->appFilepath, sizeof(platformPtr->appFilepath));
+
+    platformPtr->lastSlashPlusOne = platformPtr->appFilepath;
+    for(char *scanIndex = platformPtr->lastSlashPlusOne; *scanIndex; ++scanIndex) {
+        if(*scanIndex == '\\') {
+            platformPtr->lastSlashPlusOne = scanIndex + 1;
+        }
+    }
+}
+
 internal FILETIME Win32GetLastUpdateTime(const char* filename)
 {
     FILETIME lastUpdate = {};
@@ -35,24 +48,92 @@ internal FILETIME Win32GetLastUpdateTime(const char* filename)
     return lastUpdate;
 }
 
+DEBUG_PLATFORM_IO_FREEFILEMEMORY(DEBUGPlatformFreeFileMemory)
+{
+    if ( fileMemory ) {
+        VirtualFree(fileMemory, 0, MEM_RELEASE);
+    }  
+}
+
+DEBUG_PLATFORM_IO_READENTIREFILE(DEBUGPlatformReadEntireFile)
+{
+    debug_file result = {};
+    HANDLE fileHandle = CreateFileA(filepath, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+    if ( fileHandle != INVALID_HANDLE_VALUE ) {
+        LARGE_INTEGER filesize;
+        if ( GetFileSizeEx(fileHandle, &filesize) ) {
+            u32 filesize32 = SafeTruncateU64toU32(filesize.QuadPart);
+            result.content = VirtualAlloc(0, filesize32, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+            if ( result.content ) {
+                DWORD bytesRead;
+                if ( ReadFile(fileHandle, result.content, (DWORD)filesize.QuadPart, &bytesRead, 0) && (bytesRead == filesize32) ) {
+                    result.size = bytesRead;
+                } else {
+                    DEBUGPlatformFreeFileMemory(result.content);
+                    result.content = 0;
+                    result.size = 0;
+                    LogErr("DEBUGPlatformReadEntireFile: Error while reading file %d: bytesRead != filesize\n", filepath);
+                }
+            } else {
+                LogErr("DEBUGPlatformReadEntireFile: Error while allocating memory\n");
+            }
+        } else {
+            LogErr("DEBUGPlatformReadEntireFile: Couldn't get filesize for %s\n", filepath);
+        }
+        CloseHandle(fileHandle);
+    } else {
+        LogErr("DEBUGPlatformReadEntireFile: couldn't open file %s\n", filepath);
+    }
+    return result;
+}
+
+DEBUG_PLATFORM_IO_WRITEENTIREFILE(DEBUGPlatformWriteEntireFile)
+{
+    bool32 result = false;
+    HANDLE fileHandle = CreateFileA(filepath, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
+    if ( fileHandle != INVALID_HANDLE_VALUE ) {
+        DWORD bytesWritten;
+        if ( WriteFile(fileHandle, file->content, file->size, &bytesWritten, 0) ) {
+            result = ( bytesWritten == file->size );
+        } else {
+            LogErr("DEBUGPlatformWriteEntireFile: Error while writing to file %s\n", filepath);
+        }
+        CloseHandle(fileHandle);
+    } else {
+        LogErr("DEBUGPlatformWriteEntireFile: Error while creating file %s\n", filepath);
+    }
+    return result;
+}
+
 internal win32_engine_code Win32LoadEngineCode(const char* dllName, const char* dllTempName)
 {
-    const char* dllFilepath = "engine.dll";
-    const char* tempDllFilepath = "engine_temp.dll";
+    platform_state plt = {};
+    Win32GetExecutableFilename(&plt);
+
+    char dllFullPath[MAX_PATH];
+    ConcatString(plt.lastSlashPlusOne - plt.appFilepath, plt.appFilepath,
+                 GetCStringLength(dllName), dllName,
+                 GetCStringLength(dllFullPath), dllFullPath);
     
+    char dllTempFullPath[MAX_PATH];
+    ConcatString(plt.lastSlashPlusOne - plt.appFilepath, plt.appFilepath,
+                 GetCStringLength(dllTempName), dllTempName,
+                 GetCStringLength(dllTempFullPath), dllTempFullPath);
+
     win32_engine_code engineCode = {};
+    engineCode.dllLastUpdateTime = Win32GetLastUpdateTime(dllFullPath);
 
-    CopyFileA(dllFilepath, tempDllFilepath, FALSE);
-    HMODULE lighterLib = LoadLibraryA(tempDllFilepath);
-    
-    if ( lighterLib ) {
-        engineCode.dllHandle = lighterLib;
-        engineCode.dllLastUpdateTime = Win32GetLastUpdateTime(dllFilepath);
+    bool32 copyDone = CopyFileA(dllFullPath, dllTempFullPath, FALSE);
+    if ( copyDone ) {
+        engineCode.dllHandle = LoadLibraryA(dllTempFullPath);
+        if ( engineCode.dllHandle ) {
+            engineCode.Update = (EngineUpdateFunc*)GetProcAddress(engineCode.dllHandle, "EngineUpdateAndRender");
+            engineCode.SetPlatform = (EngineSetPlatformFunc*)GetProcAddress(engineCode.dllHandle, "EngineSetPlatform");
 
-        engineCode.Update = (EngineUpdateFunc*)GetProcAddress(lighterLib, "EngineUpdateAndRender");
-        engineCode.SetPlatform = (EngineSetPlatformFunc*)GetProcAddress(lighterLib, "EngineSetPlatform");
-
-        engineCode.isValid = (bool)( engineCode.Update || engineCode.SetPlatform );
+            engineCode.isValid = (bool32)( engineCode.Update || engineCode.SetPlatform );
+        } else {
+            LogErr("Couldn't open engine dll\n");
+        }
     }
 
     if ( !engineCode.isValid ) {
@@ -132,14 +213,25 @@ int main()
     engineMemory.permanentContainer = VirtualAlloc(0, (SIZE_T)totalMemorySize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     engineMemory.transientContainer = ( (u8*)(engineMemory.permanentContainer) + engineMemory.permanentContainerSize );
 
+    engineMemory.freefile = DEBUGPlatformFreeFileMemory;
+    engineMemory.readfile = DEBUGPlatformReadEntireFile;
+    engineMemory.writefile = DEBUGPlatformWriteEntireFile;
+
     if  ( !engineMemory.permanentContainer || !engineMemory.transientContainer ) {
         LogErr("Engine memory allocation failed\n");
     }
     PlatformRegisterEvent(platform_event{EventTypes::application_start});
 
+    platform_state plt = {};
+    Win32GetExecutableFilename(&plt);
+    char dllFullPath[MAX_PATH];
+    ConcatString(plt.lastSlashPlusOne - plt.appFilepath, plt.appFilepath,
+                 GetCStringLength("engine.dll"), "engine.dll",
+                 GetCStringLength(dllFullPath), dllFullPath);
+
     while (!glfwWindowShouldClose(application.nativeWindow))
     {
-        FILETIME engineCodeUpdate = Win32GetLastUpdateTime("engine.dll");
+        FILETIME engineCodeUpdate = Win32GetLastUpdateTime(dllFullPath);
         if ( CompareFileTime(&engineCodeUpdate, &engine.dllLastUpdateTime) ) {
             Win32UnloadEngineCode(&engine);
             Sleep(100);
@@ -161,6 +253,8 @@ int main()
         glfwPollEvents();
         PlatformProcessInputs(application.nativeWindow);
     }
+
+    Win32UnloadEngineCode(&engine);
 
     glfwTerminate();
     return 0;

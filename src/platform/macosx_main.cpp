@@ -1,6 +1,7 @@
 #ifdef __APPLE__
 
 #include "core/platform.cpp"
+#include "core/filesystem.h"
 #include "engine.h"
 
 #include "core/window.cpp"
@@ -62,14 +63,14 @@ internal void OSXGetExecutableFilename(platform_state* platformPtr)
     }
 }
 
-internal void DEBUGPlatformFreeFileMemory(void* memory)
+DEBUG_PLATFORM_IO_FREEFILEMEMORY(DEBUGPlatformFreeFileMemory)
 {
-	if (memory) {
-		free(memory);
+	if (fileMemory) {
+		free(fileMemory);
 	}
 }
 
-internal debug_platform_file DEBUGPlatformReadEntireFile(const char* filepath)
+DEBUG_PLATFORM_IO_READENTIREFILE(DEBUGPlatformReadEntireFile)
 {
 	debug_platform_file result = {};
 
@@ -110,7 +111,7 @@ internal debug_platform_file DEBUGPlatformReadEntireFile(const char* filepath)
 }
 
 
-internal bool32 DEBUGPlatformWriteEntireFile(debug_platform_file* file, const char* filepath)
+DEBUG_PLATFORM_IO_WRITEENTIREFILE(DEBUGPlatformWriteEntireFile)
 {
 	bool32 result = false;
 
@@ -161,21 +162,17 @@ internal osx_engine_code OSXLoadEngineCode(const char* dylibName, const char* dy
 
     if ( copyDone ) {
         engineCode.dylibHandle = dlopen(dylibTempFullPath, RTLD_LAZY | RTLD_GLOBAL);
-        if ( engineCode.dylibHandle )
-        {
+        if ( engineCode.dylibHandle ) {
             engineCode.Update = (EngineUpdateFunc*)dlsym(engineCode.dylibHandle, "EngineUpdateAndRender");
             engineCode.SetPlatform = (EngineSetPlatformFunc*)dlsym(engineCode.dylibHandle, "EngineSetPlatform");
 
-            if ( engineCode.Update ) {
-                engineCode.isValid = true;
-            }
+            engineCode.isValid = (bool32)( engineCode.Update || engineCode.SetPlatform );
         } else {
             LogErr("Couldn't open engine dylib\n");
         }
     }
 
-	if ( !engineCode.isValid )
-	{
+	if ( !engineCode.isValid ) {
 		engineCode.Update = EngineUpdate__Undefined;
         engineCode.SetPlatform = EngineSetPlatform__Undefined;
 	}
@@ -258,9 +255,16 @@ int main()
     }
     PlatformRegisterEvent(platform_event{EventTypes::application_start});
 
+    platform_state plt = {};
+    OSXGetExecutableFilename(&plt);
+    char dylibFullPath[PROC_PIDPATHINFO_MAXSIZE];
+    ConcatString(plt.lastSlashPlusOne - plt.appFilepath, plt.appFilepath,
+                 GetCStringLength("engine.dll"), "engine.dll",
+                 GetCStringLength(dylibFullPath), dylibFullPath);
+
     while ( globalOS.run ) {
 
-        size_t engineCodeUpdate = OSXGetLastUpdateTime("candle.dylib");
+        size_t engineCodeUpdate = OSXGetLastUpdateTime(dylibFullPath);
         if ( engineCodeUpdate > engine.dylibLastUpadteTime ) {
             OSXUnloadEngineCode(&engine);
             sleep(1);

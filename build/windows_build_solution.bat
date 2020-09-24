@@ -12,7 +12,6 @@ del *.pdb > NUL 2> NUL
 cl %commonCompilerFlags% /LD ..\src\engine.cpp /link -EXPORT:EngineUpdateAndRender -EXPORT:EngineSetPlatform -PDB:engine_%date:~-4,4%%date:~-10,2%%date:~-7,2%_%time:~0,2%%time:~3,2%%time:~6,2%.pdb -incremental:no -opt:ref
 cl %commonCompilerFlags% -DGLEW_STATIC ..\src\platform\win32_main.cpp /link %commonLinkerFlags%
 
-
     :: mingw g++ compiler commands (doesn't generate debug symbols)
 ::
 ::set includes=-Isrc -Itrdp/GLEW/include -Itrdp/GLFW/include

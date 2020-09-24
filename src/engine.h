@@ -1,5 +1,6 @@
 #pragma once
 #include "core.h"
+#include "core/filesystem.h"
 
 struct engine_memory {
     bool32 isInitialized;
@@ -7,6 +8,10 @@ struct engine_memory {
     void* permanentContainer;
     u64 transientContainerSize;
     void* transientContainer;
+
+    DEBUG_PlatformIOFreeFileMemoryFunc* freefile;
+    DEBUG_PlatformIOReadEntireFileFunc* readfile;
+    DEBUG_PlatformIOWriteEntireFileFunc* writefile;
 };
 
 #define ENGINE_UPDATE(name) void name(engine_memory* engineMemory)

@@ -4,6 +4,8 @@
 #define internal static
 #define local_storage static
 
+#define assert(expression) if ( !(expression) ) { *(int*)0 = 0; }
+
 #define KiloBytes(x) ( (x) * 1024)
 #define MegaBytes(x) ( KiloBytes(x) * 1024 )
 #define GigaBytes(x) ( MegaBytes(x) * 1024 )
@@ -82,4 +84,10 @@ internal int GetCStringLength(const char* str)
         size++;
     }
     return size;
+}
+
+inline u32 SafeTruncateU64toU32(u64 size)
+{
+    assert(size <= 0xFFFFFFFF);
+    return (u32)size;
 }
